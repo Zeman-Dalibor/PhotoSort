@@ -5,8 +5,9 @@
         x:Class="PhotoSort.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="PhotoSort"
-        Width="1400" Height="900"
+        Width="1280" Height="720"
         MinWidth="900" MinHeight="600"
+        WindowState="Maximized"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource CanvasBrush}">
 
