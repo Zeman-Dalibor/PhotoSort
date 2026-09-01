@@ -63,17 +63,31 @@ stiskem klávesy ji přesune do podsložky `edit`, `archive` nebo `delete`.
 Postavená na .NET 10 a Avalonia UI, funguje na Windows 10/11 a na Linuxu.
 Technická specifikace: [`docs/technical-specification.md`](docs/technical-specification.md).
 
-## Spuštění
+## Instalace
+
+Stáhni zip z [Releases](../../releases), rozbal a spusť. **Nainstalovaný .NET není potřeba** —
+runtime i všechny nativní knihovny jsou uvnitř spustitelného souboru.
+
+| Balíček | Pro |
+|---------|-----|
+| `PhotoSort-<verze>-windows-x64.zip` | Windows 10 / 11, 64bit |
+| `PhotoSort-<verze>-windows-x86.zip` | Windows 10 / 11, 32bit |
+| `PhotoSort-<verze>-linux-x64.zip` | Linux, 64bit |
+
+Na Linuxu případně nejdřív `chmod +x PhotoSort`.
+
+## Vývoj
 
 ```bash
-dotnet run --project src/PhotoSort
+dotnet run --project src/PhotoSort     # spuštění
+dotnet test PhotoSort.slnx             # testy
 ```
 
-## Testy
+## Vydání nové verze
 
-```bash
-dotnet test tests/PhotoSort.Tests
-```
+V záložce **Actions** spusť workflow **Release** a zadej číslo verze (například `1.2`).
+Workflow ověří verzi, pustí testy na Windows i Linuxu, zkompiluje všechny tři balíčky
+a vytvoří GitHub Release s tagem `v1.2`.
 
 ## Ovládání
 
@@ -104,6 +118,10 @@ Stejné akce jsou dostupné i jako tlačítka po okrajích okna.
 
 ## Omezení
 
-- **Windows 7 není podporován** — .NET 7 a novější na něm neběží. Minimum je Windows 10.
+- **Windows 7 a 8.1 nejsou podporované.** Poslední .NET, který na nich běžel, byla verze 6
+  (konec podpory 11/2024). Nepomůže ani self-contained balíček — nekompatibilní je samotný
+  runtime, ne způsob jeho instalace. Minimum je Windows 10 verze 1607.
 - **Canon CR3** není podporován (jiný kontejner než TIFF).
 - Skenuje se pouze kořenová složka a tři filtrační podsložky, ne celý strom.
+- Na Linuxu je potřeba běžná desktopová instalace (`libicu`, `libfontconfig1`, `libx11-6`,
+  `libice6`, `libsm6`) — v každé mainstreamové distribuci už je.

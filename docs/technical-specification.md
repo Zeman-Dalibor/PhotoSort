@@ -457,10 +457,15 @@ ne nad mocky souborového systému.
 
 ## 12. Známá omezení a upozornění
 
-1. **Windows 7 není podporován.** .NET 7 a novější (tedy i .NET 10) Windows 7 nepodporuje —
-   poslední verze s podporou Win7 SP1 byla .NET 6. Zadání Win7 vyžadovalo, ale s .NET 10 to není
-   technicky možné. Řešení: buď snížit cíl na .NET 6 (mimo podporu od 11/2024), nebo Win7 vypustit.
-   **Specifikace předpokládá Windows 10 / 11 a Linux.**
+1. **Windows 7 není podporován a nelze to obejít ani self-contained publikací.**
+   Microsoft uvádí Windows 7 SP1 pro .NET 8/9/10 explicitně jako ❌; minimum je Windows 10 1607.
+   Poslední .NET s podporou Win7 byla .NET 6 (konec podpory 12. 11. 2024).
+   Self-contained build nepomůže, protože nekompatibilní je **samotný runtime**, ne jeho
+   instalace — binárky .NET 7+ volají Win32 API, která ve Windows 7 neexistují. Zabalit runtime
+   do zipu tedy problém nijak neřeší.
+   Jediná reálná cesta k Win7 by bylo multi-targeting na `net6.0` a samostatný „legacy“ build —
+   viz §13.
+   **Specifikace předpokládá Windows 10 (1607+) / 11 a Linux.**
 2. **RAW náhledy místo plné demozaikace.** Neexistuje udržovaná .NET knihovna pro dekódování RAW
    s > 100 000 staženími (obálky nad LibRaw mají řádově tisíce stažení, Magick.NET RAW delegáta
    nemá zkompilovaného). Proto se používá JPEG náhled vložený v RAW souboru — u Canon CR2 je
@@ -469,3 +474,60 @@ ne nad mocky souborového systému.
 3. **Canon CR3** není podporován (jiný kontejner než TIFF).
 4. **Nerekurzivní sken** — podsložky jiné než `edit` / `archive` / `delete` se ignorují.
 5. **Paměť** — plná cache zabere cca 175 MB. Pro slabší stroje lze snížit `MaxDisplayEdge`.
+
+---
+
+## 13. Distribuce (GitHub Actions)
+
+Workflow [`.github/workflows/release.yml`](../.github/workflows/release.yml) se spouští ručně
+(`workflow_dispatch`) a bere vstup `version` (například `1.2`) a volitelný přepínač `prerelease`.
+
+### 13.1 Průběh
+
+| Job | Běží na | Co dělá |
+|-----|---------|---------|
+| `validate` | ubuntu | ověří formát verze (`1.2`, `1.2.3`, …) a že tag `v<verze>` ještě neexistuje |
+| `test` | ubuntu **i** windows | `restore` → `build -c Release` → `dotnet test` na obou OS |
+| `publish` | windows / ubuntu | self-contained single-file publish pro `win-x64`, `win-x86`, `linux-x64` |
+| `release` | ubuntu | vytvoří GitHub Release s tagem `v<verze>` a připojí všechny zipy |
+
+Každý job závisí na předchozím, takže **release nikdy nevznikne z kódu, který neprošel testy**.
+
+### 13.2 Parametry publikace
+
+```
+--self-contained true
+-p:PublishSingleFile=true
+-p:IncludeNativeLibrariesForSelfExtract=true
+-p:EnableCompressionInSingleFile=true
+-p:DebugType=none
+-p:Version=<verze>
+```
+
+Runtime .NET i nativní knihovny (SkiaSharp, HarfBuzz, ANGLE) jsou uvnitř jednoho spustitelného
+souboru. Uživatel **nepotřebuje nainstalovaný .NET** — stáhne zip, rozbalí, spustí.
+Výsledek: cca 46 MB pro `win-x64`, 43 MB pro `win-x86`.
+
+Nativní knihovny se při prvním spuštění rozbalí do dočasné složky; proto
+`IncludeNativeLibrariesForSelfExtract`. Bez něj by vedle `.exe` musely ležet volně.
+
+### 13.3 Balení
+
+- Windows: `Compress-Archive`.
+- Linux: `zip` (Info-ZIP), protože jako jediný zachová příznak spustitelnosti souboru `PhotoSort`.
+
+Do každého archivu se přidává `README.md` a technická specifikace.
+
+### 13.4 Proč není v matici build pro Windows 7
+
+Viz §12.1 — nešlo by jen o jiný RID. Bylo by potřeba:
+
+1. multi-targeting projektu na `net6.0` (mimo podporu, bez bezpečnostních oprav),
+2. přepsat kód, který používá novější API: `System.Threading.Lock` (.NET 9+),
+   `Stream.ReadExactly` a `Stream.ReadAtLeast` (.NET 7+),
+3. do CI přidat .NET 6 SDK,
+4. smířit se s tím, že Avalonia oficiálně deklaruje Windows 8+ a na Win7 by šlo o neotestovaný
+   provoz se softwarovým rendrováním,
+5. na cílovém stroji stejně doinstalovat KB2999226, KB3063858 a VC++ 2015–2019 Redistributable.
+
+Proto to **není** součástí výchozí matice.

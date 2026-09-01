@@ -11,6 +11,11 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <InvariantGlobalization>false</InvariantGlobalization>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Product>PhotoSort</Product>
+    <AssemblyTitle>PhotoSort</AssemblyTitle>
+    <!-- Overridden by the Release workflow via -p:Version=… -->
+    <Version>0.0.0</Version>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
