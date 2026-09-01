@@ -1,0 +1,58 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="using:PhotoSort.Converters"
+             x:Class="PhotoSort.App"
+             RequestedThemeVariant="Dark">
+
+  <Application.Resources>
+    <converters:CategoryToBrushConverter x:Key="CategoryToBrush" />
+    <converters:CategoryEqualsConverter x:Key="CategoryEquals" />
+
+    <SolidColorBrush x:Key="EditBrush" Color="#2D7DD2" />
+    <SolidColorBrush x:Key="ArchiveBrush" Color="#4C9F70" />
+    <SolidColorBrush x:Key="DeleteBrush" Color="#D64550" />
+    <SolidColorBrush x:Key="CanvasBrush" Color="#121316" />
+    <SolidColorBrush x:Key="ChromeBrush" Color="#1C1E22" />
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+
+    <Style Selector="Button.action">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="MinWidth" Value="120" />
+      <Setter Property="Height" Value="40" />
+      <Setter Property="Margin" Value="4,0" />
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Button.side">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Margin" Value="8" />
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.side:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#18FFFFFF" />
+    </Style>
+
+    <Style Selector="Button.chip">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Height" Value="28" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="Margin" Value="0,0,4,0" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="TextBlock.status">
+      <Setter Property="Foreground" Value="#9AA0A6" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </Application.Styles>
+</Application>

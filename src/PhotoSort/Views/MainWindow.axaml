@@ -1,0 +1,201 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PhotoSort.ViewModels"
+        xmlns:models="using:PhotoSort.Models"
+        x:Class="PhotoSort.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="PhotoSort"
+        Width="1400" Height="900"
+        MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource CanvasBrush}">
+
+  <Window.Styles>
+    <Style Selector="Button.category">
+      <Setter Property="Opacity" Value="0.5" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.category:pointerover">
+      <Setter Property="Opacity" Value="0.85" />
+    </Style>
+    <Style Selector="Button.category.active">
+      <Setter Property="Opacity" Value="1" />
+      <Setter Property="BorderBrush" Value="White" />
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="Auto,*,Auto">
+
+    <!-- Top bar: folder selection -->
+    <Border Grid.Row="0" Background="{StaticResource ChromeBrush}" Padding="12,8">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Button Grid.Column="0"
+                Classes="action"
+                Content="Choose folder  (O)"
+                Command="{Binding ChooseFolderCommand}" />
+
+        <TextBlock Grid.Column="1"
+                   Classes="status"
+                   Margin="16,0"
+                   TextTrimming="CharacterEllipsis"
+                   Text="{Binding RootPath}"
+                   ToolTip.Tip="{Binding RootPath}" />
+
+        <CheckBox Grid.Column="2"
+                  Content="Include edit / archive / delete"
+                  IsChecked="{Binding IncludeFilterFolders}" />
+      </Grid>
+    </Border>
+
+    <!-- Viewer -->
+    <Grid Grid.Row="1" ColumnDefinitions="180,*,180">
+
+      <!-- Previous photo -->
+      <Button Grid.Column="0"
+              Classes="side"
+              Command="{Binding PreviousCommand}"
+              IsVisible="{Binding HasPhotos}">
+        <StackPanel Spacing="10">
+          <Image Source="{Binding PreviousThumbnail}" Stretch="Uniform" MaxHeight="150" />
+          <TextBlock Classes="status" HorizontalAlignment="Center" FontSize="20" Text="◀" />
+          <TextBlock Classes="status" HorizontalAlignment="Center" Text="previous  (←)" />
+        </StackPanel>
+      </Button>
+
+      <!-- Main photo -->
+      <Grid Grid.Column="1" Margin="4">
+        <Image Source="{Binding CurrentImage}"
+               Stretch="Uniform"
+               RenderOptions.BitmapInterpolationMode="HighQuality" />
+
+        <!-- Category badge -->
+        <Border HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                Margin="12"
+                Padding="14,6"
+                CornerRadius="4"
+                IsVisible="{Binding HasCategory}"
+                Background="{Binding CurrentCategory, Converter={StaticResource CategoryToBrush}}">
+          <TextBlock Text="{Binding CategoryLabel}"
+                     Foreground="White"
+                     FontWeight="SemiBold"
+                     FontSize="14" />
+        </Border>
+
+        <!-- Welcome / empty state -->
+        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Classes="status"
+                   FontSize="16"
+                   TextAlignment="Center"
+                   MaxWidth="480"
+                   TextWrapping="Wrap"
+                   Text="{Binding StatusMessage}"
+                   IsVisible="{Binding !HasPhotos}" />
+
+        <ProgressBar IsIndeterminate="True"
+                     Width="200" Height="4"
+                     VerticalAlignment="Top" HorizontalAlignment="Center"
+                     Margin="0,12,0,0"
+                     IsVisible="{Binding IsScanning}" />
+
+        <ProgressBar IsIndeterminate="True"
+                     Width="200" Height="4"
+                     VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                     Margin="0,0,0,12"
+                     IsVisible="{Binding IsDecoding}" />
+
+        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Top"
+                   Margin="0,24,0,0"
+                   Foreground="#D64550"
+                   TextWrapping="Wrap"
+                   MaxWidth="600"
+                   Text="{Binding ErrorMessage}"
+                   IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </Grid>
+
+      <!-- Next photo -->
+      <Button Grid.Column="2"
+              Classes="side"
+              Command="{Binding NextCommand}"
+              IsVisible="{Binding HasPhotos}">
+        <StackPanel Spacing="10">
+          <Image Source="{Binding NextThumbnail}" Stretch="Uniform" MaxHeight="150" />
+          <TextBlock Classes="status" HorizontalAlignment="Center" FontSize="20" Text="▶" />
+          <TextBlock Classes="status" HorizontalAlignment="Center" Text="next  (→)" />
+        </StackPanel>
+      </Button>
+    </Grid>
+
+    <!-- Bottom bar: actions and metadata -->
+    <Border Grid.Row="2" Background="{StaticResource ChromeBrush}" Padding="12,10">
+      <StackPanel Spacing="8">
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+          <Button Classes="action category"
+                  Content="Edit  (E / Space)"
+                  Background="{StaticResource EditBrush}"
+                  Classes.active="{Binding CurrentCategory, Converter={StaticResource CategoryEquals}, ConverterParameter=Edit}"
+                  Command="{Binding CategoriseCommand}"
+                  CommandParameter="{x:Static models:PhotoCategory.Edit}" />
+
+          <Button Classes="action category"
+                  Content="Archive  (A / K)"
+                  Background="{StaticResource ArchiveBrush}"
+                  Classes.active="{Binding CurrentCategory, Converter={StaticResource CategoryEquals}, ConverterParameter=Archive}"
+                  Command="{Binding CategoriseCommand}"
+                  CommandParameter="{x:Static models:PhotoCategory.Archive}" />
+
+          <Button Classes="action category"
+                  Content="Delete  (D / Del)"
+                  Background="{StaticResource DeleteBrush}"
+                  Classes.active="{Binding CurrentCategory, Converter={StaticResource CategoryEquals}, ConverterParameter=Delete}"
+                  Command="{Binding CategoriseCommand}"
+                  CommandParameter="{x:Static models:PhotoCategory.Delete}" />
+
+          <Button Classes="action"
+                  Content="Back to root  (R)"
+                  Command="{Binding CategoriseCommand}"
+                  CommandParameter="{x:Static models:PhotoCategory.None}" />
+
+          <Button Classes="action"
+                  Content="Undo  (Ctrl+Z)"
+                  Command="{Binding UndoCommand}"
+                  IsEnabled="{Binding CanUndo}" />
+        </StackPanel>
+
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+            <TextBlock Classes="status" Text="{Binding PhotoName}" />
+            <TextBlock Classes="status" Text="{Binding PositionText}" />
+            <TextBlock Classes="status" Text="{Binding DimensionsText}" />
+            <TextBlock Classes="status" Text="{Binding FileSizeText}" />
+          </StackPanel>
+
+          <ItemsControl Grid.Column="1"
+                        Margin="24,0"
+                        HorizontalAlignment="Left"
+                        ItemsSource="{Binding Variants}"
+                        IsVisible="{Binding HasMultipleVariants}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:VariantOption">
+                <Button Classes="chip"
+                        Content="{Binding Label}"
+                        IsEnabled="{Binding !IsSelected}"
+                        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).SelectVariantCommand}"
+                        CommandParameter="{Binding Index}" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <TextBlock Grid.Column="2" Classes="status" Text="{Binding StatusMessage}" />
+        </Grid>
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>
