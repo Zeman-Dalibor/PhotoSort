@@ -62,7 +62,9 @@ respektovat. Skript proto spustí plnohodnotný darktable a obslouží modul za 
 3. spustí darktable s **dočasnou knihovnou** (`--library`), takže se vaše
    sbírka fotografií nezaplevelí, a s `--luacmd`, které načte `denoise_batch.lua`,
 4. Lua skript soubory naimportuje, označí je a stiskne tlačítko *process*
-   v modulu *neural restore*, pak hlídá vznikající DNG a nakonec darktable ukončí,
+   v modulu *neural restore*; hotové DNG pozná dvěma nezávislými způsoby —
+   hlídá soubory na disku a zároveň nové snímky v dočasné knihovně (proto je
+   modulu zapnuté *add to catalog*) — a nakonec darktable ukončí,
 5. launcher obnoví původní `darktablerc` a uklidí dočasnou složku.
 
 Po skončení tedy v systému nezůstane nic kromě nových DNG souborů.
@@ -84,8 +86,14 @@ vyberte ji a stiskněte `Ctrl+C` — do schránky se zkopíruje hotové volání
 `darktable.gui.action("...", ...)`. Cestu z něj předejte přes `-a`:
 
 ```bash
-./denoise-folder.sh -a "lib/neural restore/process" ~/Pictures/2026-09-15
+./denoise-folder.sh -a "lib/neural_restore/process" ~/Pictures/2026-09-15
 ```
+
+**DNG se zapíší, ale skript je nevidí a dočká se timeoutu** — spusťte znovu
+s `--keep-workdir` a podívejte se do `lua.log`. Řádky `written:` jsou snímky
+zachycené přes katalog, `on disk:` přes kontrolu souboru; když chybí obojí,
+zapisuje modul jinam, než skript čeká (porovnejte s řádkem `expecting files
+like ...`) — pomůže explicitní `-o`.
 
 **Trvá to velmi dlouho** — bez GPU akcelerace je raw denoise řádově minuty na
 snímek. Zkontrolujte v *preferences → AI*, že je vybraný hardwarový akcelerátor,

@@ -175,7 +175,8 @@ try {
     '--conf', (Quote 'plugins/lighttable/act_on=FALSE'),
     '--conf', (Quote 'plugins/lighttable/neural_restore/active_page=0'),
     '--conf', (Quote "plugins/lighttable/neural_restore/raw_strength=$Strength"),
-    '--conf', (Quote 'plugins/lighttable/neural_restore/add_to_catalog=FALSE'),
+    # the Lua script watches the throw-away library to notice finished DNGs
+    '--conf', (Quote 'plugins/lighttable/neural_restore/add_to_catalog=TRUE'),
     '--conf', (Quote "plugins/lighttable/neural_restore/output_directory=$confOutput"),
     '--conf', (Quote 'write_sidecar_files=never'),
     '--luacmd', (Quote "dofile('$luaPath')")

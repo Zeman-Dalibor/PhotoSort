@@ -32,14 +32,16 @@ local dt = require "darktable"
 -- must match _task_suffix() / the DNG branch in src/libs/neural_restore.c
 local SUFFIX = "_raw-denoise"
 
--- action path of the module's "process" button; tried in this order,
--- job.conf may pin one via action_path
-local ACTION_CANDIDATES = { "lib/neural restore/process",
-                            "lib/neural_restore/process" }
+-- Action path of the module's "process" button, tried in this order;
+-- job.conf may pin one via action_path. darktable builds the path from the
+-- module's plugin name, not from its displayed name, so the underscore
+-- variant is the one that works.
+local ACTION_CANDIDATES = { "lib/neural_restore/process",
+                            "lib/neural restore/process" }
 
 local POLL_MS = 1000    -- output folder polling interval
 local SETTLE_MS = 3000  -- grace time after the last DNG appeared
-local START_DELAY_MS = 1500
+local START_DELAY_MS = 3000 -- let the lighttable catch up with the selection
 local RETRY_AFTER_S = 60 -- press "process" once more if nothing happened
 
 local WORKDIR = ((os.getenv("DT_DENOISE_WORKDIR") or ""):gsub("\\", "/"))
@@ -89,6 +91,12 @@ local function file_size(path)
   return size
 end
 
+local function count_table(t)
+  local n = 0
+  for _ in pairs(t) do n = n + 1 end
+  return n
+end
+
 local function slashes(path)
   return (path:gsub("\\", "/"))
 end
@@ -125,28 +133,23 @@ local function plan_outputs(files, output_dir)
   return planned
 end
 
-local function write_result(status, message, planned, produced)
+local function write_result(status, message, total, outputs)
   local f = io.open(WORKDIR .. "/result.txt", "w")
   if not f then return end
+  outputs = outputs or {}
   f:write("status=", status, "\n")
   f:write("message=", (message or ""):gsub("[\r\n]+", " "), "\n")
-  f:write("total=", tostring(planned and #planned or 0), "\n")
-  local done = 0
-  for index, path in ipairs(planned or {}) do
-    if produced and produced[index] then
-      done = done + 1
-      f:write("output=", path, "\n")
-    else
-      f:write("missing=", path, "\n")
-    end
+  f:write("total=", tostring(total or 0), "\n")
+  for _, path in ipairs(outputs) do
+    f:write("output=", path, "\n")
   end
-  f:write("done=", tostring(done), "\n")
+  f:write("done=", tostring(#outputs), "\n")
   f:close()
 end
 
-local function finish(status, message, planned, produced)
+local function finish(status, message, total, outputs)
   log("%s: %s", status, message)
-  write_result(status, message, planned, produced)
+  write_result(status, message, total, outputs)
   if log_file then
     log_file:close()
     log_file = nil
@@ -293,32 +296,81 @@ local function main()
     return finish("error", "the imported photos could not be selected")
   end
 
+  local total = #imported
   local planned = plan_outputs(imported, output_dir)
-  local candidates = action_candidates(cfg.action_path)
-  local attempt = 1
-  log("pressing '%s' for %d image(s)", candidates[attempt], #planned)
-  press(candidates[attempt])
+  log("expecting files like %s", planned[1])
 
-  local produced, count = {}, 0
-  local last_change = os.time()
+  -- Two independent ways of noticing a finished DNG, because guessing the
+  -- output path is brittle (variables in the output folder, name collisions,
+  -- non-ASCII paths that Lua's io cannot open): the file on disk, and the
+  -- image darktable imports into our throw-away library once it is written.
+  local known, written, on_disk = {}, {}, {}
+  for _, image in ipairs(images) do known[image.id] = true end
 
-  while count < #planned do
-    dt.control.sleep(POLL_MS)
-    if dt.control.ending then
-      return finish("error", "darktable is shutting down", planned, produced)
-    end
-
+  local function scan()
     for index, path in ipairs(planned) do
-      if not produced[index] and file_size(path) then
-        produced[index] = true
-        count = count + 1
-        last_change = os.time()
-        log("[%d/%d] %s", count, #planned, path)
+      if not on_disk[index] and file_size(path) then
+        on_disk[index] = path
+        log("on disk: %s", path)
       end
     end
-    if count == #planned then break end
+
+    local ok = pcall(function()
+      for _, image in ipairs(dt.database) do
+        if not known[image.id] then
+          known[image.id] = true
+          -- only DNGs count, so an unrelated import can never make the
+          -- batch look finished before it is
+          if image.filename:lower():match("%.dng$") then
+            local path = slashes(image.path) .. "/" .. image.filename
+            written[image.id] = path
+            log("written: %s", path)
+          end
+        end
+      end
+    end)
+    if not ok then return count_table(on_disk) end
+
+    return math.max(count_table(on_disk), count_table(written))
+  end
+
+  local function outputs()
+    local list = {}
+    for _, path in pairs(written) do list[#list + 1] = path end
+    if #list > 0 then return list end
+    for _, path in pairs(on_disk) do list[#list + 1] = path end
+    return list
+  end
+
+  local candidates = action_candidates(cfg.action_path)
+  local attempt = 1
+  log("pressing '%s' for %d image(s)", candidates[attempt], total)
+  press(candidates[attempt])
+
+  local count = 0
+  local last_change = os.time()
+  local last_beat = os.time()
+
+  while count < total do
+    dt.control.sleep(POLL_MS)
+    if dt.control.ending then
+      return finish("error", "darktable is shutting down", total, outputs())
+    end
+
+    local found = scan()
+    if found > count then
+      count = found
+      last_change = os.time()
+      log("%d of %d done", count, total)
+    end
+    if count >= total then break end
 
     local idle = os.time() - last_change
+    if os.time() - last_beat >= 30 then
+      last_beat = os.time()
+      log("waiting, %d of %d done, %d s since the last one", count, total, idle)
+    end
+
     if count == 0 and attempt < #candidates and idle >= RETRY_AFTER_S then
       attempt = attempt + 1
       log("nothing happened in %d s - trying action '%s'",
@@ -331,19 +383,18 @@ local function main()
           string.format("nothing was produced in %d s - the process button "
             .. "of the neural restore module was probably never triggered, "
             .. "see the action path hint in README.md", idle),
-          planned, produced)
+          total, outputs())
       end
       return finish("partial",
-        string.format("no new DNG for %d s, %d of %d done",
-                      idle, count, #planned),
-        planned, produced)
+        string.format("no new DNG for %d s, %d of %d done", idle, count, total),
+        total, outputs())
     end
   end
 
   -- the last file may still be flushing
   dt.control.sleep(SETTLE_MS)
-  finish("ok", string.format("%d DNG file(s) written", count),
-         planned, produced)
+  scan()
+  finish("ok", string.format("%d DNG file(s) written", count), total, outputs())
 end
 
 -- dispatch: --luacmd runs during startup, the GUI is only usable afterwards

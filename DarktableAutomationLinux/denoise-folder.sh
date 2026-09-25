@@ -209,7 +209,8 @@ dt_args=(
   --conf "plugins/lighttable/act_on=FALSE"
   --conf "plugins/lighttable/neural_restore/active_page=0"
   --conf "plugins/lighttable/neural_restore/raw_strength=$strength"
-  --conf "plugins/lighttable/neural_restore/add_to_catalog=FALSE"
+  # the Lua script watches the throw-away library to notice finished DNGs
+  --conf "plugins/lighttable/neural_restore/add_to_catalog=TRUE"
   --conf "plugins/lighttable/neural_restore/output_directory=$conf_output"
   --conf "write_sidecar_files=never"
   --luacmd "dofile(\"${LUA_SCRIPT//\"/\\\"}\")"

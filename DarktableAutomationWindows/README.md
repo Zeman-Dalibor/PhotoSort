@@ -62,7 +62,9 @@ respektovat. Skript proto spustí plnohodnotný darktable a obslouží modul za 
 3. spustí darktable s **dočasnou knihovnou** (`--library`), takže se vaše
    sbírka fotografií nezaplevelí, a s `--luacmd`, které načte `denoise_batch.lua`,
 4. Lua skript soubory naimportuje, označí je a stiskne tlačítko *process*
-   v modulu *neural restore*, pak hlídá vznikající DNG a nakonec darktable ukončí,
+   v modulu *neural restore*; hotové DNG pozná dvěma nezávislými způsoby —
+   hlídá soubory na disku a zároveň nové snímky v dočasné knihovně (proto je
+   modulu zapnuté *add to catalog*) — a nakonec darktable ukončí,
 5. launcher obnoví původní `darktablerc` a uklidí dočasnou složku.
 
 Okno darktable se během zpracování otevře — na Windows nelze grafickou aplikaci
@@ -86,8 +88,14 @@ vyberte ji a stiskněte `Ctrl+C` — do schránky se zkopíruje hotové volání
 `darktable.gui.action("...", ...)`. Cestu z něj předejte přes `-ActionPath`:
 
 ```powershell
-.\Denoise-Folder.ps1 -ActionPath "lib/neural restore/process" D:\foto\2026-09-15
+.\Denoise-Folder.ps1 -ActionPath "lib/neural_restore/process" D:\foto\2026-09-15
 ```
+
+**DNG se zapíší, ale skript je nevidí a dočká se timeoutu** — spusťte znovu
+s `-KeepWorkDir` a podívejte se do `lua.log`. Řádky `written:` jsou snímky
+zachycené přes katalog, `on disk:` přes kontrolu souboru; když chybí obojí,
+zapisuje modul jinam, než skript čeká (porovnejte s řádkem `expecting files
+like ...`) — pomůže explicitní `-Output`.
 
 **Trvá to velmi dlouho** — bez GPU akcelerace je raw denoise řádově minuty na
 snímek. Zkontrolujte v *preferences → AI*, že je vybraný hardwarový akcelerátor
