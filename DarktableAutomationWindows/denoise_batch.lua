@@ -176,6 +176,57 @@ local function press(path)
   return ok
 end
 
+-- number of images in the current collection, nil when it cannot be read
+local function collection_size()
+  local ok, count = pcall(function() return #dt.collection end)
+  if not ok then return nil end
+  return count
+end
+
+-- darktable intersects the selection with the current collection
+-- (dt_selection_get_list_query: selected_images IN memory.collected_images),
+-- and importing a film roll does not collect it. Without this the lighttable
+-- stays empty and the module's process button never becomes sensitive.
+-- The library is a throw-away one, so "every film roll" is the safest rule;
+-- the folder based rules are fallbacks.
+local function collect_images(input_dir)
+  local attempts = { { item = "DT_COLLECTION_PROP_FILMROLL", data = "%" } }
+
+  for _, dir in ipairs({ input_dir, slashes(input_dir) }) do
+    if dir ~= "" then
+      attempts[#attempts + 1] = { item = "DT_COLLECTION_PROP_FOLDERS", data = dir }
+      attempts[#attempts + 1] = { item = "DT_COLLECTION_PROP_FILMROLL", data = dir }
+    end
+  end
+
+  for _, attempt in ipairs(attempts) do
+    local ok, err = pcall(function()
+      local rule = dt.gui.libs.collect.new_rule()
+      rule.mode = "DT_LIB_COLLECT_MODE_AND"
+      rule.item = attempt.item
+      rule.data = attempt.data
+      dt.gui.libs.collect.filter({ rule })
+    end)
+
+    if not ok then
+      log("WARNING: collect rule %s='%s' failed: %s",
+          attempt.item, attempt.data, tostring(err))
+    else
+      -- the collection is rebuilt on the main thread, give it a moment
+      local count = 0
+      for _ = 1, 6 do
+        dt.control.sleep(500)
+        count = collection_size()
+        if count == nil or count > 0 then break end
+      end
+      log("collect rule %s='%s' -> %s image(s)",
+          attempt.item, attempt.data, tostring(count))
+      if count == nil or count > 0 then return count end
+    end
+  end
+  return 0
+end
+
 local function main()
   if WORKDIR == "" then error("DT_DENOISE_WORKDIR is not set") end
   log_file = io.open(WORKDIR .. "/lua.log", "w")
@@ -222,11 +273,25 @@ local function main()
   end
   log("imported %d of %d file(s)", #images, #files)
 
-  -- the module acts on the lighttable selection
+  -- the module acts on the lighttable selection, and only on images that
+  -- are part of the current collection
   pcall(function() dt.gui.current_view(dt.gui.views.lighttable) end)
   pcall(function() dt.gui.libs.neural_restore.visible = true end)
+
+  if collect_images(cfg.input_dir or "") == 0 then
+    return finish("error",
+      "the imported photos are not in the current collection, so darktable "
+      .. "ignores them - see lua.log for the collect rules that were tried")
+  end
+
   dt.gui.selection(images)
   dt.control.sleep(START_DELAY_MS)
+
+  local selected = #dt.gui.selection()
+  log("selected %d of %d image(s)", selected, #images)
+  if selected == 0 then
+    return finish("error", "the imported photos could not be selected")
+  end
 
   local planned = plan_outputs(imported, output_dir)
   local candidates = action_candidates(cfg.action_path)

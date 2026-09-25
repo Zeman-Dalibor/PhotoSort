@@ -150,6 +150,7 @@ if (Test-Path -LiteralPath $darktablerc) { Copy-Item -LiteralPath $darktablerc $
 
 Write-Utf8Lines (Join-Path $workdir 'files.txt') @($files.FullName)
 Write-Utf8Lines (Join-Path $workdir 'job.conf') @(
+  "input_dir=$Folder",
   "output_dir=$Output",
   "strength=$Strength",
   "stall_timeout=$Timeout",

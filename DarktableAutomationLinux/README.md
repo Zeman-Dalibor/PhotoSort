@@ -72,6 +72,11 @@ Po skončení tedy v systému nezůstane nic kromě nových DNG souborů.
 **„no rawdenoise model is active“** — nemáte v *preferences → AI* zapnuté AI
 nebo aktivovaný model pro úlohu `rawdenoise`. Viz Předpoklady.
 
+**„the imported photos are not in the current collection“** — darktable pracuje
+jen s fotografiemi, které jsou v aktuální kolekci; skript ji proto po importu
+sám přepne. Když ani jedno z pravidel nezabere, najdete jejich seznam v
+`lua.log` (spusťte s `--keep-workdir`).
+
 **Nevznikne žádný DNG a skript hlásí timeout** — nejpravděpodobněji se nepodařilo
 trefit cestu k akci tlačítka *process*. Zjistíte ji přesně: v darktable otevřete
 *preferences → shortcuts*, najděte akci `process` u modulu *neural restore*,

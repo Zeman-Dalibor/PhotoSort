@@ -192,6 +192,7 @@ trap cleanup EXIT
 
 printf '%s\n' "${files[@]}" >"$workdir/files.txt"
 {
+  printf 'input_dir=%s\n' "$input"
   printf 'output_dir=%s\n' "$output"
   printf 'strength=%s\n' "$strength"
   printf 'stall_timeout=%s\n' "$stall_timeout"
