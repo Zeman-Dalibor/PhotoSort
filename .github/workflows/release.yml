@@ -106,19 +106,36 @@ jobs:
             -p:Version=${{ needs.validate.outputs.version }} \
             --output staging
 
+      - name: Publish GroupsMaker
+        shell: bash
+        run: |
+          dotnet publish GroupsMaker/GroupsMaker.csproj \
+            --configuration Release \
+            --runtime ${{ matrix.rid }} \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:EnableCompressionInSingleFile=true \
+            -p:DebugType=none \
+            -p:Version=${{ needs.validate.outputs.version }} \
+            --output staging-groups
+
       - name: Add documentation to the package
         shell: bash
         run: |
           cp README.md staging/
           mkdir -p staging/docs
           cp docs/technical-specification.md staging/docs/
+          cp GroupsMaker/README.md staging-groups/
           ls -la staging
+          ls -la staging-groups
 
       - name: Create archive (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           Compress-Archive -Path staging/* -DestinationPath "PhotoSort-${{ needs.validate.outputs.version }}-${{ matrix.label }}.zip"
+          Compress-Archive -Path staging-groups/* -DestinationPath "GroupsMaker-${{ needs.validate.outputs.version }}-${{ matrix.label }}.zip"
 
       # Info-ZIP keeps the executable bit, which the Linux build needs to start after unzipping.
       - name: Create archive (Linux)
@@ -128,11 +145,16 @@ jobs:
           chmod +x staging/PhotoSort
           cd staging
           zip -r "../PhotoSort-${{ needs.validate.outputs.version }}-${{ matrix.label }}.zip" .
+          cd ../staging-groups
+          chmod +x GroupsMaker
+          zip -r "../GroupsMaker-${{ needs.validate.outputs.version }}-${{ matrix.label }}.zip" .
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PhotoSort-${{ matrix.label }}
-          path: PhotoSort-*.zip
+          name: release-${{ matrix.label }}
+          path: |
+            PhotoSort-*.zip
+            GroupsMaker-*.zip
           if-no-files-found: error
           retention-days: 7
 
@@ -163,6 +185,9 @@ jobs:
           | \`PhotoSort-${VERSION}-windows-x64.zip\` | Windows 10 / 11, 64-bit |
           | \`PhotoSort-${VERSION}-windows-x86.zip\` | Windows 10 / 11, 32-bit |
           | \`PhotoSort-${VERSION}-linux-x64.zip\` | Linux, 64-bit |
+          | \`GroupsMaker-${VERSION}-windows-x64.zip\` | GroupsMaker, Windows 10 / 11, 64-bit |
+          | \`GroupsMaker-${VERSION}-windows-x86.zip\` | GroupsMaker, Windows 10 / 11, 32-bit |
+          | \`GroupsMaker-${VERSION}-linux-x64.zip\` | GroupsMaker, Linux, 64-bit |
 
           ## Installation
 
@@ -171,6 +196,12 @@ jobs:
 
           - **Windows:** run \`PhotoSort.exe\`.
           - **Linux:** run \`./PhotoSort\` (if needed, \`chmod +x PhotoSort\` first).
+
+          ## GroupsMaker
+
+          Run \`GroupsMaker.exe\` on Windows or \`./GroupsMaker\` on Linux with the photo folder
+          as its argument, for example \`GroupsMaker.exe "D:\\Photos" --dry-run\`. The
+          GroupsMaker archive includes its README with all available options.
 
           ## Requirements
 
