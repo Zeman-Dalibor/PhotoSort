@@ -47,6 +47,16 @@ The same actions are also available as buttons along the edges of the window.
   preloaded.
 - **Nothing is deleted** -- `delete` is just another folder; `Ctrl+Z` restores the last 20 moves.
 
+## GroupsMaker
+
+A separate command line tool that runs before the app: it detects bursts and duplicates and moves
+each cluster into its own folder, so only the best shot of every group has to be picked.
+See [`GroupsMaker/README.md`](GroupsMaker/README.md).
+
+```bash
+dotnet run --project GroupsMaker -- "D:\Photos" --dry-run
+```
+
 ## Limitations
 
 - **Windows 7 is not supported** -- .NET 7 and later do not run on it. Windows 10 is the minimum.
@@ -115,6 +125,16 @@ Stejné akce jsou dostupné i jako tlačítka po okrajích okna.
   předběžným načítáním.
 - **Cache** — posledních 10 zobrazených fotografií zůstává v paměti, okolí ±2 se předběžně načítá.
 - **Nic se nemaže** — `delete` je jen další složka; `Ctrl+Z` vrací posledních 20 přesunů.
+
+## GroupsMaker
+
+Samostatný nástroj pro příkazovou řádku, který se pouští před aplikací: najde dávky (bursty)
+a duplicity a každý shluk přesune do vlastní složky, takže stačí vybrat nejlepší snímek ze skupiny.
+Viz [`GroupsMaker/README.md`](GroupsMaker/README.md).
+
+```bash
+dotnet run --project GroupsMaker -- "D:\Fotky" --dry-run
+```
 
 ## Omezení
 

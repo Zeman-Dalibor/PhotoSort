@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>GroupsMaker</RootNamespace>
+    <AssemblyName>GroupsMaker</AssemblyName>
+    <Product>PhotoSort GroupsMaker</Product>
+    <AssemblyTitle>GroupsMaker</AssemblyTitle>
+    <Version>0.0.0</Version>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MetadataExtractor" Version="2.9.3" />
+    <PackageReference Include="SkiaSharp" Version="2.88.9" />
+    <!-- The desktop app gets the Linux native build from Avalonia; a console app has to ask for it. -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.9" />
+  </ItemGroup>
+
+  <!-- Linked, not copied: RAW preview extraction and the format list stay defined in one place. -->
+  <ItemGroup>
+    <Compile Include="../src/PhotoSort/Services/SupportedFormats.cs" Link="Shared/SupportedFormats.cs" />
+    <Compile Include="../src/PhotoSort/Services/TiffPreviewExtractor.cs" Link="Shared/TiffPreviewExtractor.cs" />
+    <Compile Include="../src/PhotoSort/Services/NaturalStringComparer.cs" Link="Shared/NaturalStringComparer.cs" />
+  </ItemGroup>
+
+</Project>
